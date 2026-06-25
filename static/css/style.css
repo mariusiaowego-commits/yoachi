@@ -1,401 +1,237 @@
-/*
-  style.css — Yoachi Badge Wall 样式
-  dizicute 风格 (#FF6B6B 珊瑚红 / 卡片布局 / 响应式 / 8岁儿童大字)
-  拆自 badge_wall.html 内联 <style> (重构 2026-06-25)
-*/
+/* Yoachi dizicute style — aligned with dizical badges.html */
+* { box-sizing: border-box; }
+body { margin: 0; padding: 0 0 80px; background: #FFF8F0; font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; }
 
-/* ── dizicute 6 色 token ── */
-:root {
-  --primary:   #FF6B6B;   /* 珊瑚红 — CTA / 强调 / icon底 */
-  --secondary: #2C3E50;   /* 深蓝灰 — 主文字 / header */
-  --tertiary:  #FFF8F0;   /* 暖白 — 页面背景 */
-  --neutral:   #FFFFFF;   /* 纯白 — 卡片 / 容器 */
-  --muted:     #888888;   /* 灰 — 副文字 */
-  --accent:    #FF8C5A;   /* 暖橙 — 稀有强调 */
-
-  /* 圆角 */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
-
-  /* 间距 */
-  --space-xs: 6px;
-  --space-sm: 12px;
-  --space-md: 20px;
-  --space-lg: 32px;
+/* ── Top bar ─────────────────────────────────────────── */
+.top-bar {
+  display: flex; align-items: center; justify-content: center;
+  padding: 14px 16px 12px;
+}
+.page-title {
+  font-size: 22px; font-weight: 900; color: #333;
+  letter-spacing: 1px;
 }
 
-/* ── Reset & Base ── */
-*, *::before, *::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* ── Stats bar ───────────────────────────────────────── */
+.stats-bar {
+  display: flex; justify-content: center; gap: 8px;
+  padding: 0 16px 10px;
+  font-size: 12px; color: #bbb; font-weight: 600;
 }
+.stats-bar span { background: #f0ebe3; padding: 3px 12px; border-radius: 20px; }
 
-html {
-  font-size: 16px;   /* 基础字号，响应式往上加大 */
+/* ── Tabs ────────────────────────────────────────────── */
+#tab-bar {
+  display: flex; gap: 6px; padding: 12px 16px 0;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
 }
-
-body {
-  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
-               system-ui, -apple-system, sans-serif;
-  background: var(--tertiary);
-  min-height: 100vh;
-  color: var(--secondary);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* ── 容器 ── */
-.container {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: var(--space-lg) var(--space-md);
-}
-
-/* ── Header ── */
-.badge-wall-header {
-  text-align: center;
-  margin-bottom: var(--space-lg);
-}
-
-.badge-wall-header .title {
-  font-size: 2.4rem;
-  font-weight: 800;
-  color: var(--primary);
-  text-shadow: 2px 4px 0 rgba(255, 107, 107, 0.25);
-  line-height: 1.2;
-  margin-bottom: var(--space-xs);
-}
-
-.badge-wall-header .subtitle {
-  font-size: 1.1rem;
-  color: var(--muted);
-  font-weight: 400;
-}
-
-/* ── 分类筛选 ── */
-.category-filter {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-lg);
-  flex-wrap: wrap;
-  padding: 0 var(--space-sm);
-}
-
-.category-btn {
-  padding: 10px 20px;
-  border: 2.5px solid var(--primary);
-  background: transparent;
-  color: var(--primary);
-  border-radius: 50px;
+.tab-btn {
+  flex: 0 0 auto;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 14px 14px 0 0;
+  background: rgba(240,235,225,0.6);
+  color: #888;
+  font-size: 14px; font-weight: 500;
   cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  font-family: inherit;
-  transition: all 0.2s ease;
-  min-width: 60px;
+  transition: background 0.2s, color 0.2s;
   white-space: nowrap;
 }
-
-.category-btn:hover {
-  background: rgba(255, 107, 107, 0.1);
-  transform: translateY(-2px);
+.tab-btn.active {
+  background: #fff;
+  color: #FF6B35;
+  font-weight: 700;
 }
+.tab-btn:active { transform: scale(0.97); }
 
-.category-btn.active {
-  background: var(--primary);
-  color: white;
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+/* ── Section ─────────────────────────────────────────── */
+.section { padding: 10px 16px 6px; }
+.section-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
 }
+.section-title {
+  font-size: 12px; font-weight: 800; color: #ccc; letter-spacing: 0.5px;
+}
+.section-count {
+  font-size: 11px; color: #ccc; font-weight: 600;
+  background: #f5f3f0; padding: 2px 8px; border-radius: 20px;
+}
+.section-line { flex: 1; height: 1px; background: #eee; }
 
-/* ── 徽章网格 ── */
+/* ── Badge grid ──────────────────────────────────────── */
 .badge-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: var(--space-md);
-  padding: var(--space-xs);
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+@media (min-width: 520px) {
+  .badge-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 800px) {
+  .badge-grid { grid-template-columns: repeat(4, 1fr); gap: 18px; }
 }
 
-/* ── 徽章卡片 ── */
+/* ── Badge card ──────────────────────────────────────── */
 .badge-card {
-  background: var(--neutral);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  text-align: center;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.07);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 18px 12px 14px;
+  border-radius: 18px;
+  background: #fffdf8;
+  border: 2px solid #f0e8d0;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
-  overflow: hidden;
-  border: 3px solid transparent;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
-
-/* 左上角分类角标 */
-.badge-card::before {
-  content: attr(data-category);
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: white;
-  background: var(--primary);
-  padding: 2px 8px;
-  border-radius: 50px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 .badge-card:hover {
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(180,140,20,0.22);
+}
+.badge-card:active { transform: scale(0.97); }
+
+/* unlocked glow */
+.badge-card.unlocked::before {
+  content: ''; position: absolute; top: -10px; left: -10px;
+  width: 52px; height: 52px;
+  background: radial-gradient(circle, rgba(255,215,0,0.25) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-.badge-card.achieved {
-  border-color: var(--primary);
-}
-
+/* locked state */
 .badge-card.locked {
-  filter: grayscale(0.7);
-  opacity: 0.75;
+  background: #f9f8f6;
+  border-color: #e8e4de;
+  filter: saturate(0.3) brightness(0.95);
+}
+.badge-card.locked:hover { filter: saturate(0.5) brightness(0.9); }
+
+/* ── Badge image ─────────────────────────────────────── */
+.b-img {
+  width: 100px; height: 100px; object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 8px rgba(180,140,20,0.35));
+}
+.badge-card.locked .b-img {
+  filter: saturate(0.55) brightness(0.85) drop-shadow(0 2px 5px rgba(0,0,0,0.12));
 }
 
-/* ── 徽章图标 ── */
-.badge-icon {
-  width: 90px;
-  height: 90px;
-  margin: 0 auto var(--space-sm);
-  border-radius: 50%;
-  background: linear-gradient(135deg, #fff0f0, #fff8f0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.8rem;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2);
+/* ── Badge text ──────────────────────────────────────── */
+.b-name {
+  font-size: 18px; font-weight: 900; color: #c8860a;
+  margin-top: 10px; text-align: center; line-height: 1.3;
+  letter-spacing: 0.5px;
+}
+.badge-card.locked .b-name { color: #c0b898; }
+
+.b-tag {
+  font-size: 11px; font-weight: 400;
+  color: #aaa;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-top: 5px;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: rgba(240,235,225,0.5);
 }
 
-.badge-card.achieved .badge-icon {
-  background: linear-gradient(135deg, #fff0f0, #ffe8e8);
-  box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
-}
+/* tag color variants */
+.badge-card[data-tag="突破"]   .b-tag { background: rgba(255,210,210,0.5); border-color: rgba(220,120,120,0.25); }
+.badge-card[data-tag="段位"]   .b-tag { background: rgba(255,240,180,0.5); border-color: rgba(220,180,60,0.30); }
+.badge-card[data-tag="巅峰"]   .b-tag { background: rgba(230,210,255,0.5); border-color: rgba(180,130,230,0.25); }
+.badge-card[data-tag="执着"]   .b-tag { background: rgba(210,230,255,0.5); border-color: rgba(120,170,220,0.25); }
+.badge-card[data-tag="晋级"]   .b-tag { background: rgba(210,250,220,0.5); border-color: rgba(100,200,130,0.25); }
+.badge-card[data-tag="神秘"]   .b-tag { background: rgba(200,200,200,0.5); border-color: rgba(150,150,150,0.25); }
 
-.badge-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
+.b-lock { width: 16px; height: 16px; opacity: 0.3; margin-top: 5px; }
 
-/* ── 徽章名称 & 描述 ── */
-.badge-name {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--secondary);
-  margin-bottom: 4px;
-  line-height: 1.3;
-  min-height: 2.6em;   /* 两行对齐 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+.empty-tip { text-align: center; color: #bbb; padding: 40px 0; font-size: 15px; }
 
-.badge-description {
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin-bottom: var(--space-xs);
-  line-height: 1.4;
-  min-height: 2.8em;
+/* ── Modal ───────────────────────────────────────────── */
+#modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.30);
+  z-index: 1000;
+  align-items: center; justify-content: center;
+  padding: 16px;
+  overflow: auto;
 }
-
-/* ── 状态标签 ── */
-.badge-status {
-  display: inline-block;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 50px;
-  letter-spacing: 0.03em;
-}
-
-.badge-status.achieved {
-  background: rgba(255, 107, 107, 0.15);
-  color: var(--primary);
-}
-
-.badge-status.locked {
-  background: rgba(136, 136, 136, 0.15);
-  color: var(--muted);
-}
-
-/* ── 进度文字 ── */
-.badge-progress {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-top: var(--space-xs);
-}
-
-/* ── Modal ── */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(44, 62, 80, 0.55);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-md);
-  backdrop-filter: blur(4px);
-}
-
-.modal-content {
-  background: var(--neutral);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  max-width: 380px;
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+#modal-overlay.active { display: flex; }
+#modal-box {
+  background: #fffdf8;
+  border-radius: 24px;
+  border: 2.5px solid #f0c040;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+  width: 100%; max-width: 720px;
+  max-height: 90vh;
+  padding: 0;
+  display: flex; flex-direction: column;
   position: relative;
-  animation: modal-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes modal-pop {
-  from { transform: scale(0.85); opacity: 0; }
-  to   { transform: scale(1);    opacity: 1; }
-}
-
-.modal-close {
-  position: absolute;
-  top: var(--space-sm);
-  right: var(--space-sm);
-  background: rgba(136, 136, 136, 0.15);
-  border: none;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  cursor: pointer;
-  font-size: 1.2rem;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-}
-
-.modal-close:hover {
-  background: rgba(136, 136, 136, 0.3);
-}
-
-.modal-badge-icon {
-  width: 110px;
-  height: 110px;
-  margin: 0 auto var(--space-md);
-  border-radius: 50%;
-  background: linear-gradient(135deg, #fff0f0, #ffe8e8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3.5rem;
   overflow: hidden;
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
 }
-
-.modal-badge-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.modal-header {
+  flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 48px 24px 16px;
 }
-
-.modal-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--secondary);
-  margin-bottom: var(--space-xs);
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 24px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: #d0c0a0 transparent;
 }
-
-.modal-desc {
-  font-size: 1rem;
-  color: var(--muted);
-  margin-bottom: var(--space-md);
-  line-height: 1.5;
+#modal-close {
+  position: absolute; top: 12px; right: 12px;
+  width: 36px; height: 36px;
+  background: #fff; border: 2px solid #f0c040;
+  border-radius: 50%;
+  font-size: 18px; color: #c8860a; line-height: 32px; text-align: center;
+  cursor: pointer; font-weight: 900;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  transition: transform 0.15s;
+  z-index: 10;
 }
-
-.modal-meta {
-  font-size: 0.9rem;
-  color: var(--muted);
-  margin-top: var(--space-xs);
-}
-
-.modal-btn {
-  display: inline-block;
-  margin-top: var(--space-md);
-  padding: 12px 32px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 50px;
-  font-size: 1rem;
-  font-weight: 700;
-  font-family: inherit;
+#modal-close:hover { transform: scale(1.1); }
+#modal-close:active { transform: scale(0.9); }
+#modal-img-wrap {
+  width: 400px; height: 400px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(255, 107, 107, 0.4);
-  transition: all 0.2s ease;
+  transition: transform 0.18s ease;
 }
-
-.modal-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(255, 107, 107, 0.5);
+#modal-img-wrap:hover { transform: scale(1.05) rotate(-1deg); }
+#modal-img-wrap:active { transform: scale(0.97); }
+#modal-img { width: 400px; height: 400px; object-fit: contain; }
+#modal-name {
+  font-size: 28px; font-weight: 900; color: #c8860a;
+  text-align: center; margin-bottom: 6px; letter-spacing: 0.5px;
 }
-
-/* ── 空状态 ── */
-.empty-state {
-  text-align: center;
-  padding: var(--space-lg) * 2;
-  color: var(--muted);
-  font-size: 1.1rem;
+#modal-tag {
+  font-size: 12px; font-weight: 700;
+  color: #ccc; letter-spacing: 1px; text-transform: uppercase;
+  margin-bottom: 14px;
 }
-
-/* ── Footer ── */
-.badge-wall-footer {
-  text-align: center;
-  margin-top: var(--space-lg);
-  padding: var(--space-md);
-  color: var(--muted);
-  font-size: 0.85rem;
+.modal-divider {
+  width: 40px; height: 2px; background: #f0c040;
+  border-radius: 2px; margin-bottom: 12px;
 }
-
-/* ── 响应式: iPad / 手机 ── */
-@media (max-width: 768px) {
-  html { font-size: 15px; }
-
-  .badge-wall-header .title { font-size: 2rem; }
-
-  .badge-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: var(--space-sm);
-  }
-
-  .badge-icon { width: 72px; height: 72px; font-size: 2.2rem; }
-
-  .category-btn { padding: 8px 14px; font-size: 0.9rem; }
+#modal-cond {
+  font-size: 16px; color: #666; text-align: center;
+  margin-bottom: 6px; font-weight: 600;
 }
-
-@media (max-width: 480px) {
-  html { font-size: 14px; }
-
-  .container { padding: var(--space-md) var(--space-sm); }
-
-  .badge-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-sm);
-  }
-
-  .badge-icon { width: 64px; height: 64px; font-size: 2rem; }
-
-  .badge-name { font-size: 0.95rem; }
-  .badge-description { display: none; }
-
-  .modal-content { padding: var(--space-md); }
+#modal-date {
+  font-size: 13px; color: #ccc; margin-bottom: 14px;
+}
+#modal-desc {
+  font-size: 16px; color: #a08060;
+  text-align: left; font-style: italic;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  border-top: 1px solid #f0e8d0;
+  padding: 14px 8px 0; width: 100%;
+}
+#modal-hint {
+  font-size: 13px; color: #bbb; text-align: center; margin-top: 10px;
 }

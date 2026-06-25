@@ -1,108 +1,239 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Yoachi 勋章墙</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="top-bar">
+    <div class="page-title">🏆 Yoachi 勋章墙</div>
+  </div>
 
-{% block title %}Yoachi - 勋章墙{% endblock %}
+  <div class="stats-bar">
+    <span id="stats-text">已获得 -- / -- 枚</span>
+  </div>
 
-{% block content %}
-<div x-data="badgeWall()" x-init="init()">
+  <div id="tab-bar"></div>
 
-    <!-- 分类筛选 -->
-    <div class="category-filter">
-        <button class="category-btn"
-                :class="{ 'active': selectedCategory === 'all' }"
-                @click="selectedCategory = 'all'">
-            全部
-        </button>
-        {% for cat in categories %}
-        <button class="category-btn"
-                :class="{ 'active': selectedCategory === '{{ cat.id }}' }"
-                @click="selectedCategory = '{{ cat.id }}'">
-            {{ CATEGORY_NAMES.get(cat.id, cat.name) }}
-        </button>
-        {% endfor %}
-    </div>
+  <div id="app">加载中...</div>
 
-    <!-- 勋章网格 (服务端渲染，x-show 做前端过滤) -->
-    <div class="badge-grid">
-        {% for badge in achievements %}
-        <div class="badge-card {{ 'achieved' if badge.achieved == 'Y' else 'locked' }}"
-             data-category="{{ CATEGORY_NAMES.get(badge.category, badge.category) }}"
-             x-show="selectedCategory === 'all' || selectedCategory === '{{ badge.category }}'"
-             @click="showDetail('{{ badge.id }}')">
-            <div class="badge-icon">
-                {% if badge.badge_url %}
-                    <img src="{{ badge.badge_url }}" alt="{{ badge.name }}">
-                {% else %}
-                    {{ CATEGORY_EMOJI.get(badge.category, '🏆') }}
-                {% endif %}
-            </div>
-            <div class="badge-name">{{ badge.name }}</div>
-            <div class="badge-description">{{ badge.description }}</div>
-            <div class="badge-status {{ 'achieved' if badge.achieved == 'Y' else 'locked' }}">
-                {% if badge.achieved == 'Y' %}✅ 已获得{% else %}🔒 未解锁{% endif %}
-            </div>
-            {% if badge.computed_value is not none and badge.threshold %}
-            <div class="badge-progress">
-                {{ badge.computed_value }} / {{ badge.threshold }}
-            </div>
-            {% endif %}
+  <!-- Modal -->
+  <div id="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div id="modal-box">
+      <div id="modal-close" onclick="closeModal()">×</div>
+      <div class="modal-header">
+        <div id="modal-img-wrap">
+          <img id="modal-img" src="" alt="">
         </div>
-        {% endfor %}
+        <div id="modal-name"></div>
+        <div id="modal-tag"></div>
+        <div class="modal-divider"></div>
+        <div id="modal-cond"></div>
+        <div id="modal-date"></div>
+      </div>
+      <div class="modal-body">
+        <div id="modal-desc"></div>
+        <div id="modal-hint"></div>
+      </div>
     </div>
+  </div>
 
-    <!-- 勋章详情 Modal -->
-    <div class="modal-overlay"
-         x-show="showModal"
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         @keydown.escape.window="showModal = false">
-        <div class="modal-content" @click.outside="closeModal()">
-            <button class="modal-close" @click="closeModal()" aria-label="关闭">✕</button>
+<script>
+const DATA = {{data_json|safe}};
+const CATEGORIES = {{categories_json|safe}};
 
-            <template x-if="selectedBadge">
-                <div>
-                    <div class="modal-badge-icon">
-                        <template x-if="selectedBadge.badge_url">
-                            <img :src="selectedBadge.badge_url"
-                                 :alt="selectedBadge.name"
-                                 style="width:100%;height:100%;object-fit:contain;">
-                        </template>
-                        <template x-if="!selectedBadge.badge_url">
-                            <span x-text="CATEGORY_EMOJI[selectedBadge.category] || '🏆'"></span>
-                        </template>
-                    </div>
+// ── Tab 构建 ──────────────────────────────────────────────
+let activeCategory = 'all';
 
-                    <h2 class="modal-title" x-text="selectedBadge.name"></h2>
-                    <p class="modal-desc" x-text="selectedBadge.description"></p>
+const CATEGORY_LABELS = {
+  'all': '🏆 全部',
+  'li': '🎀 礼',
+  'yue': '🎵 乐',
+  'she': '🏃 射',
+  'yu': '🚗 御',
+  'shu': '📚 书',
+  'shu2': '🔢 数',
+  'ying': '🌍 英',
+};
 
-                    <div style="margin-top: 12px;">
-                        <span class="badge-status"
-                              :class="selectedBadge.achieved ? 'achieved' : 'locked'"
-                              x-text="selectedBadge.achieved ? '✅ 已获得' : '🔒 未解锁'">
-                        </span>
-                    </div>
+function buildTabs() {
+  const cats = ['all', ...CATEGORIES.map(c => c.id)];
+  const tabBar = document.getElementById('tab-bar');
+  tabBar.innerHTML = cats.map(c =>
+    `<button class="tab-btn${c === activeCategory ? ' active' : ''}"
+            id="tab-${c}" onclick="switchTab('${c}')">
+      ${CATEGORY_LABELS[c] || c}
+    </button>`
+  ).join('');
+}
 
-                    <p class="modal-meta" x-show="selectedBadge.achieved_at">
-                        获得时间：<span x-text="formatDate(selectedBadge.achieved_at)"></span>
-                    </p>
+// ── 卡片 HTML ─────────────────────────────────────────────
+function esc(s) {
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
-                    <p class="modal-meta" x-show="selectedBadge.threshold">
-                        进度：<span x-text="selectedBadge.computed_value || 0"></span>
-                        / <span x-text="selectedBadge.threshold"></span>
-                    </p>
-                </div>
-            </template>
+function cardHTML(d) {
+  const lock = !d.achieved
+    ? `<img class="b-lock" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23999'%3E%3Cpath d='M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z'/%3E%3C/svg%3E" alt="🔒">`
+    : '';
+  return `<div class="badge-card ${d.achieved?'unlocked':'locked'}"
+    data-id="${esc(d.id)}"
+    data-name="${esc(d.name)}"
+    data-tag="${esc(d.type)}"
+    data-desc="${esc(d.description)}"
+    data-img="${esc(d.badge_url)}"
+    data-date="${d.achieved_at||''}"
+    data-category="${esc(d.category)}"
+    data-locked="${d.achieved?'no':'yes'}"
+    onclick="openModal(this)">
+    <img class="b-img" src="${esc(d.badge_url)}" alt="${esc(d.name)}" onerror="this.style.display='none'">
+    <div class="b-name">${esc(d.name)}</div>
+    <div class="b-tag">${esc(d.type)}</div>
+    ${lock}
+  </div>`;
+}
 
-            <button class="modal-btn" @click="closeModal()">知道了！</button>
-        </div>
-    </div>
+// ── Section 构建 ───────────────────────────────────────────
+function buildSection(cat) {
+  const items = cat === 'all' ? DATA : DATA.filter(d => d.category === cat);
+  const unlocked = items.filter(d => d.achieved);
+  const locked = items.filter(d => !d.achieved);
+  let html = '';
 
-</div>
-{% endblock %}
+  if (unlocked.length) {
+    html += `<div class="section">
+      <div class="section-header">
+        <span class="section-title">已解锁</span>
+        <span class="section-count">${unlocked.length}</span>
+        <div class="section-line"></div>
+      </div>
+      <div class="badge-grid">${unlocked.map(cardHTML).join('')}</div>
+    </div>`;
+  }
+  if (locked.length) {
+    html += `<div class="section">
+      <div class="section-header">
+        <span class="section-title">未解锁</span>
+        <span class="section-count">${locked.length}</span>
+        <div class="section-line"></div>
+      </div>
+      <div class="badge-grid">${locked.map(cardHTML).join('')}</div>
+    </div>`;
+  }
+  if (!unlocked.length && !locked.length) {
+    html += `<div class="empty-tip">暂无勋章</div>`;
+  }
+  return html;
+}
 
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
-{% endblock %}
+// ── Tab 切换 ───────────────────────────────────────────────
+function switchTab(cat) {
+  activeCategory = cat;
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.id === `tab-${cat}`);
+  });
+  const app = document.getElementById('app');
+  app.innerHTML = buildSection(cat);
+
+  // 更新统计
+  const items = cat === 'all' ? DATA : DATA.filter(d => d.category === cat);
+  const earned = items.filter(d => d.achieved).length;
+  document.getElementById('stats-text').textContent = `已获得 ${earned} / ${items.length} 枚`;
+
+  // 入场动画
+  animateEntrance();
+}
+
+// ── GSAP 入场动画 ──────────────────────────────────────────
+function animateEntrance() {
+  const app = document.getElementById('app');
+  gsap.set(app, { opacity: 0 });
+  gsap.to(app, { opacity: 1, duration: 0.3, ease: 'power2.out' });
+
+  const sections = app.querySelectorAll('.section');
+  sections.forEach((section, si) => {
+    gsap.fromTo(section,
+      { opacity: 0, y: 18 },
+      { opacity: 1, y: 0, duration: 0.4, ease: 'back.out(1.6)', delay: si * 0.12 }
+    );
+    const cards = section.querySelectorAll('.badge-card');
+    cards.forEach((card, ci) => {
+      gsap.fromTo(card,
+        { opacity: 0, scale: 0.88, y: 10 },
+        { opacity: 1, scale: 1, y: 0,
+          duration: 0.32, ease: 'back.out(1.8)',
+          delay: si * 0.12 + ci * 0.06 + 0.15 }
+      );
+    });
+  });
+}
+
+// ── Modal ──────────────────────────────────────────────────
+function openModal(card) {
+  const locked  = card.dataset.locked === 'yes';
+  const overlay = document.getElementById('modal-overlay');
+  const box     = document.getElementById('modal-box');
+
+  document.getElementById('modal-img').src = card.dataset.img;
+  document.getElementById('modal-img').style.filter =
+    locked ? 'saturate(0.55) brightness(0.85)' : '';
+  document.getElementById('modal-name').textContent = card.dataset.name;
+  document.getElementById('modal-tag').textContent  = card.dataset.tag;
+  document.getElementById('modal-cond').textContent = card.dataset.desc;
+
+  const dateEl = document.getElementById('modal-date');
+  if (card.dataset.date) {
+    const d = new Date(card.dataset.date);
+    dateEl.textContent = d.toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'});
+    dateEl.style.display = '';
+  } else {
+    dateEl.style.display = 'none';
+  }
+
+  document.getElementById('modal-desc').textContent = '';
+  document.getElementById('modal-hint').textContent =
+    locked ? '继续加油，下一个成就在等你！' : '';
+
+  overlay.classList.add('active');
+
+  // GSAP: 从卡片位置弹出
+  const cr = card.getBoundingClientRect();
+  const mr = box.getBoundingClientRect();
+  const fromX = cr.left + cr.width/2  - (mr.left + mr.width/2);
+  const fromY = cr.top  + cr.height/2 - (mr.top  + mr.height/2);
+
+  gsap.set(box, { x: fromX*0.6, y: fromY*0.6, scale: 0.5, opacity: 0 });
+  gsap.set(overlay, { backgroundColor: 'rgba(0,0,0,0)' });
+
+  const tl = gsap.timeline();
+  tl.to(overlay, { backgroundColor: 'rgba(0,0,0,0.30)', duration: 0.15, ease:'power2.out' })
+    .to(box, { x:0, y:0, scale:1, opacity:1, duration:0.22, ease:'back.out(1.5)' }, 0)
+    .from('#modal-img-wrap', { opacity:0, y:6, duration:0.12, ease:'power2.out' }, 0.14)
+    .from('#modal-name',    { opacity:0, y:4, duration:0.12, ease:'power2.out' }, 0.17)
+    .from('#modal-tag',     { opacity:0, y:4, duration:0.12, ease:'power2.out' }, 0.19)
+    .from('.modal-divider', { opacity:0, scaleX:0, duration:0.1,  ease:'back.out(2)' }, 0.21)
+    .from('#modal-cond',    { opacity:0, y:4, duration:0.12, ease:'power2.out' }, 0.23)
+    .from('#modal-date',    { opacity:0, y:4, duration:0.12, ease:'power2.out' }, 0.25);
+}
+
+function closeModal() {
+  const overlay = document.getElementById('modal-overlay');
+  const box     = document.getElementById('modal-box');
+  gsap.to(box, { scale: 0.8, opacity: 0, duration: 0.15, ease:'power2.in',
+    onComplete: () => overlay.classList.remove('active') });
+  gsap.to(overlay, { backgroundColor: 'rgba(0,0,0,0)', duration: 0.15 });
+}
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+// ── Init ───────────────────────────────────────────────────
+buildTabs();
+switchTab('all');
+</script>
+</body>
+</html>

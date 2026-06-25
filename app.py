@@ -59,6 +59,10 @@ def _ensure_yoachi_schema():
                 "INSERT OR IGNORE INTO categories (id, name, description, sort_order) VALUES (?, ?, ?, ?)",
                 defaults,
             )
+        # Re-map dizical synced badges (milestone/seasonal) to 乐 category
+        conn.execute(
+            "UPDATE achievements SET category = 'yue' WHERE category IN ('milestone', 'seasonal')"
+        )
         conn.commit()
     finally:
         conn.close()
@@ -97,12 +101,13 @@ def close_db(exception):
 
 @app.route('/')
 def badge_wall():
-    """Main badge wall page"""
+    """Main badge wall page — dizicute style with data_json"""
+    import json as _json
     db = get_db()
-    
+
     # Get all achievements with their stats
     achievements = db.execute('''
-        SELECT 
+        SELECT
             a.id,
             a.name,
             a.type,
@@ -110,10 +115,6 @@ def badge_wall():
             a.description,
             a.display_format,
             a.threshold,
-            a.unlocked_template,
-            a.locked_template,
-            a.sort_order,
-            a.seasonal_type,
             COALESCE(s.achieved, 'N') as achieved,
             s.achieved_at,
             s.computed_value,
@@ -125,15 +126,39 @@ def badge_wall():
         WHERE a.display_on_achievements = 1
         ORDER BY a.sort_order, a.name
     ''').fetchall()
-    
+
+    # Build badge list for client-side rendering
+    badges = []
+    for row in achievements:
+        badges.append({
+            'id': row['id'],
+            'name': row['name'],
+            'type': row['type'],
+            'category': row['category'],
+            'description': row['description'],
+            'achieved': row['achieved'] == 'Y',
+            'achieved_at': row['achieved_at'],
+            'computed_value': row['computed_value'],
+            'badge_url': row['badge_url'] or '/static/badges/medal_badge.png',
+            'is_locked': row['is_locked'] == 1,
+        })
+
+    # Sort: unlocked first (by achieved_at desc), then locked
+    def sort_key(b):
+        if b['achieved_at'] is None:
+            return (1, '')
+        return (0, b['achieved_at'])
+    unlocked = sorted([b for b in badges if b['achieved']], key=sort_key, reverse=True)
+    locked = sorted([b for b in badges if not b['achieved']], key=sort_key, reverse=True)
+    sorted_badges = unlocked + locked
+
     # Get categories
     categories = db.execute('SELECT * FROM categories ORDER BY sort_order').fetchall()
-    
+    categories_list = [{'id': c['id'], 'name': c['name']} for c in categories]
+
     return render_template('badge_wall.html',
-                          achievements=achievements,
-                          categories=categories,
-                          CATEGORY_NAMES=CATEGORY_NAMES,
-                          CATEGORY_EMOJI=CATEGORY_EMOJI)
+                          data_json=_json.dumps(sorted_badges, ensure_ascii=False),
+                          categories_json=_json.dumps(categories_list, ensure_ascii=False))
 
 
 @app.route('/api/badges')
