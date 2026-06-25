@@ -102,6 +102,9 @@
 □ 服务验证 — curl 页面确认 200 OK
 □ 用户确认 — 展示最终结果
 □ Obsidian 镜像 — 重要文档双写到 Obsidian
+  - 目标: `/Users/mt16/Library/Mobile Documents/iCloud~md~obsidian/Documents/tqob/05-Coding/project-yoachi/`
+  - agent 生成的文档文件名最前面加 `aigen-` 前缀
+  - PRD 结构: YAML frontmatter + 需求 + 目标 + 需求详情
 ```
 
 ## 相关项目
