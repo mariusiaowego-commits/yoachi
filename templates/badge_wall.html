@@ -184,7 +184,10 @@ function openModal(card) {
     locked ? 'saturate(0.55) brightness(0.85)' : '';
   document.getElementById('modal-name').textContent = card.dataset.name;
   document.getElementById('modal-tag').textContent  = card.dataset.tag;
-  document.getElementById('modal-cond').textContent = card.dataset.desc;
+  document.getElementById('modal-cond').textContent = '';
+  document.getElementById('modal-date').textContent = '';
+  const descEl = document.getElementById('modal-desc');
+  descEl.textContent = card.dataset.desc;
 
   const dateEl = document.getElementById('modal-date');
   if (card.dataset.date) {
@@ -195,7 +198,6 @@ function openModal(card) {
     dateEl.style.display = 'none';
   }
 
-  document.getElementById('modal-desc').textContent = '';
   document.getElementById('modal-hint').textContent =
     locked ? '继续加油，下一个成就在等你！' : '';
 
@@ -217,8 +219,9 @@ function openModal(card) {
     .from('#modal-name',    { opacity:0, y:4, duration:0.12, ease:'power2.out' }, 0.17)
     .from('#modal-tag',     { opacity:0, y:4, duration:0.12, ease:'power2.out' }, 0.19)
     .from('.modal-divider', { opacity:0, scaleX:0, duration:0.1,  ease:'back.out(2)' }, 0.21)
-    .from('#modal-cond',    { opacity:0, y:4, duration:0.12, ease:'power2.out' }, 0.23)
-    .from('#modal-date',    { opacity:0, y:4, duration:0.12, ease:'power2.out' }, 0.25);
+    .from('#modal-date',    { opacity:0, y:4, duration:0.12, ease:'power2.out' }, 0.23)
+    .from('#modal-desc',    { opacity:0, y:4, duration:0.12, ease:'power2.out' }, 0.25)
+    .from('#modal-hint',    { opacity:0, y:4, duration:0.12, ease:'power2.out' }, 0.27);
 }
 
 function closeModal() {
