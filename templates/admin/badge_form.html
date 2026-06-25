@@ -1,0 +1,155 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ '编辑' if mode == 'edit' else '新建' }}勋章 - Yoachi Admin{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <h1>{{ '编辑' if mode == 'edit' else '新建' }}勋章</h1>
+  <div class="actions">
+    <a href="/admin/" class="btn btn-secondary">← 返回列表</a>
+  </div>
+</div>
+
+<div class="card" style="padding: 24px; max-width: 720px;">
+  <form id="badge-form">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;">ID *</label>
+        <input name="id" value="{{ badge.id if badge else '' }}" {{ 'readonly' if mode=='edit' else '' }}
+               style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;"
+               placeholder="如: reading_100_books" required>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;">名称 *</label>
+        <input name="name" value="{{ badge.name if badge else '' }}"
+               style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;"
+               placeholder="如: 百书斩" required>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;">分类 *</label>
+        <select name="category" style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+          <option value="li" {{ 'selected' if badge and badge.category=='li' }}>礼</option>
+          <option value="yue" {{ 'selected' if badge and badge.category=='yue' }}>乐</option>
+          <option value="she" {{ 'selected' if badge and badge.category=='she' }}>射</option>
+          <option value="yu" {{ 'selected' if badge and badge.category=='yu' }}>御</option>
+          <option value="shu" {{ 'selected' if badge and badge.category=='shu' }}>书</option>
+          <option value="shu2" {{ 'selected' if badge and badge.category=='shu2' }}>数</option>
+          <option value="ying" {{ 'selected' if badge and badge.category=='ying' }}>英</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;">标签 *</label>
+        <select name="type" style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+          <option value="突破" {{ 'selected' if badge and badge.type=='突破' }}>突破</option>
+          <option value="巅峰" {{ 'selected' if badge and badge.type=='巅峰' }}>巅峰</option>
+          <option value="执着" {{ 'selected' if badge and badge.type=='执着' }}>执着</option>
+          <option value="段位" {{ 'selected' if badge and badge.type=='段位' }}>段位</option>
+          <option value="晋级" {{ 'selected' if badge and badge.type=='晋级' }}>晋级</option>
+          <option value="神秘" {{ 'selected' if badge and badge.type=='神秘' }}>神秘</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;">稀有度</label>
+        <select name="rarity" style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+          <option value="N" {{ 'selected' if not badge or badge.rarity=='N' }}>N (无)</option>
+          <option value="common" {{ 'selected' if badge and badge.rarity=='common' }}>普通</option>
+          <option value="R" {{ 'selected' if badge and badge.rarity=='R' }}>稀有 (R)</option>
+          <option value="SR" {{ 'selected' if badge and badge.rarity=='SR' }}>超稀有 (SR)</option>
+          <option value="SSR" {{ 'selected' if badge and badge.rarity=='SSR' }}>绝对稀有 (SSR)</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;">解锁策略</label>
+        <select name="unlock_strategy" style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+          <option value="calc" {{ 'selected' if not badge or badge.unlock_strategy=='calc' }}>calc (计算)</option>
+          <option value="manual" {{ 'selected' if badge and badge.unlock_strategy=='manual' }}>manual (手动)</option>
+          <option value="immediate" {{ 'selected' if badge and badge.unlock_strategy=='immediate' }}>immediate (立即)</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <label style="font-size:12px;font-weight:700;color:#666;">条件文案</label>
+      <input name="cond_text" value="{{ badge.cond_text if badge else '' }}"
+             style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;"
+             placeholder="如: 累计阅读100本课外书">
+    </div>
+
+    <div style="margin-top:16px;">
+      <label style="font-size:12px;font-weight:700;color:#666;">典故故事 (description)</label>
+      <textarea name="description" rows="6"
+                style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;resize:vertical;"
+                placeholder="勋章的典故故事...">{{ badge.description if badge else '' }}</textarea>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:16px;">
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;">阈值</label>
+        <input name="threshold" type="number" value="{{ badge.threshold if badge and badge.threshold else '' }}"
+               style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;">展示格式</label>
+        <input name="display_format" value="{{ badge.display_format if badge else 'count' }}"
+               style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#666;">排序</label>
+        <input name="sort_order" type="number" value="{{ badge.sort_order if badge else 0 }}"
+               style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+      </div>
+    </div>
+
+    <div style="margin-top:24px; display:flex; gap:10px;">
+      <button type="submit" class="btn btn-primary">{{ '保存修改' if mode == 'edit' else '创建勋章' }}</button>
+      <a href="/admin/" class="btn btn-secondary">取消</a>
+      {% if mode == 'edit' %}
+      <button type="button" class="btn btn-danger" onclick="deleteBadge()" style="margin-left:auto;">删除</button>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<script>
+const form = document.getElementById('badge-form');
+const mode = '{{ mode }}';
+const badgeId = '{{ badge.id if badge else "" }}';
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(form);
+  const data = Object.fromEntries(fd.entries());
+  if (data.threshold) data.threshold = parseInt(data.threshold);
+  if (data.sort_order) data.sort_order = parseInt(data.sort_order);
+
+  try {
+    const url = mode === 'edit' ? `/api/admin/badge/${badgeId}` : '/api/admin/badge';
+    const method = mode === 'edit' ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    if (res.ok) {
+      window.location.href = '/admin/';
+    } else {
+      alert(result.error || '操作失败');
+    }
+  } catch (err) {
+    alert('网络错误: ' + err.message);
+  }
+});
+
+async function deleteBadge() {
+  if (!confirm('确定删除这个勋章？此操作不可恢复。')) return;
+  try {
+    const res = await fetch(`/api/admin/badge/${badgeId}`, {method: 'DELETE'});
+    if (res.ok) window.location.href = '/admin/';
+    else alert('删除失败');
+  } catch (err) {
+    alert('网络错误: ' + err.message);
+  }
+}
+</script>
+{% endblock %}

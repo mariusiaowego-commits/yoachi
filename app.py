@@ -86,6 +86,11 @@ atexit.register(_sync_manager.stop)
 # Start background sync scheduler
 _sync_manager.start_background()
 
+# Register admin blueprint
+from routes.admin import admin_bp, admin_api_bp
+app.register_blueprint(admin_bp)
+app.register_blueprint(admin_api_bp)
+
 
 def get_db():
     """Get database connection for current request"""

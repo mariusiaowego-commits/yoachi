@@ -1,0 +1,105 @@
+{% extends "admin/base.html" %}
+
+{% block title %}勋章管理 - Yoachi Admin{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <h1>📋 勋章管理</h1>
+  <div class="actions">
+    <a href="/admin/badge/new" class="btn btn-primary">➕ 新建勋章</a>
+  </div>
+</div>
+
+<div class="card">
+  <table class="badge-table" id="badge-table">
+    <thead>
+      <tr>
+        <th>图片</th>
+        <th>名称</th>
+        <th>分类</th>
+        <th>标签</th>
+        <th>稀有度</th>
+        <th>解锁策略</th>
+        <th>状态</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="badge-tbody">
+      <tr><td colspan="8" class="empty-state"><p>加载中...</p></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+const CATEGORY_LABELS = {
+  'li': '礼', 'yue': '乐', 'she': '射', 'yu': '御',
+  'shu': '书', 'shu2': '数', 'ying': '英'
+};
+const RARITY_LABELS = {
+  'N': 'N', 'common': '普通', 'R': 'R', 'SR': 'SR', 'SSR': 'SSR'
+};
+
+async function loadBadges() {
+  try {
+    const res = await fetch('/api/admin/badges');
+    const data = await res.json();
+    const tbody = document.getElementById('badge-tbody');
+
+    if (!data.badges.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-state"><p>暂无勋章，点击上方「新建勋章」创建第一个</p></td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.badges.map(b => `
+      <tr>
+        <td>
+          ${b.badge_url
+            ? `<img class="badge-thumb" src="${b.badge_url}" alt="${b.name}" onerror="this.style.display='none'">`
+            : '<div style="width:40px;height:40px;background:#f0ebe3;border-radius:8px;"></div>'}
+        </td>
+        <td><span class="badge-name">${esc(b.name)}</span></td>
+        <td>${CATEGORY_LABELS[b.category] || b.category}</td>
+        <td><span class="tag tag-${b.type}">${esc(b.type)}</span></td>
+        <td><span class="rarity-${b.rarity}">${RARITY_LABELS[b.rarity] || b.rarity}</span></td>
+        <td>${b.unlock_strategy}</td>
+        <td>
+          ${b.achieved
+            ? '<span class="status-badge status-achieved">✅ 已解锁</span>'
+            : '<span class="status-badge status-locked">🔒 未解锁</span>'}
+        </td>
+        <td>
+          <div class="action-btns">
+            <a href="/admin/badge/${esc(b.id)}/edit" class="btn btn-secondary btn-sm">编辑</a>
+            <button class="btn btn-sm ${b.achieved ? 'btn-secondary' : 'btn-primary'}"
+                    onclick="toggleUnlock('${esc(b.id)}', ${!b.achieved})">
+              ${b.achieved ? '锁定' : '解锁'}
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    console.error('Failed to load badges:', e);
+  }
+}
+
+async function toggleUnlock(id, achieved) {
+  try {
+    const res = await fetch(`/api/admin/badge/${id}/unlock`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({achieved})
+    });
+    if (res.ok) loadBadges();
+  } catch (e) {
+    console.error('Toggle unlock failed:', e);
+  }
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+loadBadges();
+</script>
+{% endblock %}

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Yoachi Admin{% endblock %}</title>
+  <style>
+    :root {
+      --primary: #FF6B6B;
+      --secondary: #2C3E50;
+      --tertiary: #FFF8F0;
+      --neutral: #FFFFFF;
+      --muted: #666666;
+      --accent: #FF8C5A;
+      --border: #E5E7EB;
+      --success: #4CAF50;
+      --warning: #FF9800;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, 'PingFang SC', sans-serif; background: var(--tertiary); color: var(--secondary); }
+
+    .admin-layout { display: flex; min-height: 100vh; }
+    .admin-sidebar {
+      width: 220px; background: var(--neutral); border-right: 1px solid var(--border);
+      padding: 20px 0; flex-shrink: 0;
+    }
+    .sidebar-title {
+      font-size: 20px; font-weight: 900; color: var(--primary);
+      padding: 0 20px 20px; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-nav { padding: 12px 0; }
+    .sidebar-nav a {
+      display: block; padding: 10px 20px; color: var(--muted);
+      text-decoration: none; font-size: 14px; font-weight: 500;
+      transition: background 0.15s, color 0.15s;
+    }
+    .sidebar-nav a:hover { background: var(--tertiary); color: var(--secondary); }
+    .sidebar-nav a.active { background: var(--tertiary); color: var(--primary); font-weight: 700; border-left: 3px solid var(--primary); }
+    .sidebar-back { padding: 12px 20px; border-top: 1px solid var(--border); margin-top: auto; }
+    .sidebar-back a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 600; }
+
+    .admin-content { flex: 1; padding: 24px 32px; overflow-x: auto; }
+    .admin-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .admin-header h1 { font-size: 24px; font-weight: 900; }
+    .admin-header .actions { display: flex; gap: 10px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 18px; border-radius: 12px; border: none;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: var(--neutral); color: var(--secondary); border: 1px solid var(--border); }
+    .btn-danger { background: #f44336; color: white; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+
+    .card {
+      background: var(--neutral); border-radius: 16px;
+      border: 1px solid var(--border); overflow: hidden;
+    }
+
+    /* Table */
+    .badge-table { width: 100%; border-collapse: collapse; }
+    .badge-table th {
+      background: var(--tertiary); padding: 12px 16px;
+      font-size: 12px; font-weight: 700; color: var(--muted);
+      text-align: left; letter-spacing: 0.5px;
+    }
+    .badge-table td {
+      padding: 12px 16px; border-top: 1px solid var(--border);
+      font-size: 14px; vertical-align: middle;
+    }
+    .badge-table tr:hover td { background: rgba(255,107,107,0.03); }
+
+    .badge-thumb { width: 40px; height: 40px; object-fit: contain; border-radius: 8px; }
+    .badge-name { font-weight: 700; color: var(--secondary); }
+
+    .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 12px;
+      font-size: 11px; font-weight: 600;
+    }
+    .tag-突破 { background: rgba(255,210,210,0.5); color: #c0392b; }
+    .tag-巅峰 { background: rgba(230,210,255,0.5); color: #8e44ad; }
+    .tag-执着 { background: rgba(210,230,255,0.5); color: #2980b9; }
+    .tag-段位 { background: rgba(255,240,180,0.5); color: #f39c12; }
+    .tag-晋级 { background: rgba(210,250,220,0.5); color: #27ae60; }
+    .tag-神秘 { background: rgba(200,200,200,0.5); color: #7f8c8d; }
+
+    .rarity-N { color: var(--muted); }
+    .rarity-common { color: #7f8c8d; }
+    .rarity-R { color: #3498db; }
+    .rarity-SR { color: #f39c12; }
+    .rarity-SSR { color: #e74c3c; font-weight: 700; }
+
+    .status-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; }
+    .status-achieved { color: var(--success); }
+    .status-locked { color: var(--muted); }
+
+    .action-btns { display: flex; gap: 6px; }
+    .action-btns a, .action-btns button { font-size: 12px; }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state p { font-size: 15px; margin-top: 12px; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .admin-sidebar { display: none; }
+      .admin-content { padding: 16px; }
+      .badge-table { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-layout">
+    <div class="admin-sidebar">
+      <div class="sidebar-title">🏆 Yoachi Admin</div>
+      <nav class="sidebar-nav">
+        <a href="/admin/" class="active">📋 勋章管理</a>
+        <a href="/admin/badge/new">➕ 新建勋章</a>
+      </nav>
+      <div class="sidebar-back">
+        <a href="/">← 返回勋章墙</a>
+      </div>
+    </div>
+    <div class="admin-content">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
