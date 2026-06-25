@@ -1,8 +1,11 @@
 """Yoachi Admin Blueprint — badge management routes."""
 import json
+import logging
 import sqlite3
 from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, g, current_app
+
+logger = logging.getLogger(__name__)
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 admin_api_bp = Blueprint('admin_api', __name__, url_prefix='/api/admin')
@@ -269,3 +272,124 @@ def api_categories():
     db = get_db()
     rows = db.execute('SELECT * FROM categories ORDER BY sort_order').fetchall()
     return jsonify({'categories': [dict(r) for r in rows]})
+
+
+# ── Draft Workflow API (Phase 2) ─────────────────────────────
+
+@admin_api_bp.route('/badge/drafts')
+def api_draft_list():
+    """List all drafts."""
+    from workflow.draft import list_drafts
+    status = request.args.get('status')
+    drafts = list_drafts(status=status)
+    return jsonify({'drafts': [d.to_dict() for d in drafts]})
+
+
+@admin_api_bp.route('/badge/draft', methods=['POST'])
+def api_draft_create():
+    """Create a new badge draft."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'JSON body required'}), 400
+
+    required = ['id', 'name', 'type', 'category']
+    missing = [f for f in required if not data.get(f)]
+    if missing:
+        return jsonify({'error': f'Missing fields: {missing}'}), 400
+
+    from workflow.draft import create_draft
+    try:
+        draft = create_draft(data)
+        return jsonify({'ok': True, 'draft_id': draft.draft_id, 'draft': draft.to_dict()}), 201
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@admin_api_bp.route('/badge/draft/<draft_id>')
+def api_draft_detail(draft_id):
+    """Get draft detail."""
+    from workflow.draft import load_draft
+    draft = load_draft(draft_id)
+    if not draft:
+        return jsonify({'error': 'Draft not found'}), 404
+    return jsonify({'draft': draft.to_dict()})
+
+
+@admin_api_bp.route('/badge/draft/<draft_id>/generate', methods=['POST'])
+def api_draft_generate(draft_id):
+    """Generate image for draft (calls hermes image_gen)."""
+    from workflow.draft import load_draft, update_draft_image, update_draft_status
+    from workflow.generator import generate_image
+
+    draft = load_draft(draft_id)
+    if not draft:
+        return jsonify({'error': 'Draft not found'}), 404
+
+    if draft.status != 'draft_created':
+        return jsonify({'error': f'Draft status is {draft.status}, expected draft_created'}), 400
+
+    placeholder = draft.meta.get('placeholder', '')
+    if not placeholder:
+        return jsonify({'error': 'No placeholder (AI prompt) in draft meta'}), 400
+
+    try:
+        image_info = generate_image(placeholder, draft.meta['id'], draft.version)
+        update_draft_image(draft, image_info)
+        return jsonify({'ok': True, 'image': image_info})
+    except Exception as e:
+        logger.error(f"Image generation failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_api_bp.route('/badge/draft/<draft_id>/confirm', methods=['POST'])
+def api_draft_confirm(draft_id):
+    """Confirm draft (user approves the image)."""
+    from workflow.draft import load_draft, update_draft_status
+    draft = load_draft(draft_id)
+    if not draft:
+        return jsonify({'error': 'Draft not found'}), 404
+
+    if draft.status != 'draft_awaiting_confirm':
+        return jsonify({'error': f'Draft status is {draft.status}, expected draft_awaiting_confirm'}), 400
+
+    update_draft_status(draft, 'confirmed', by='user')
+    return jsonify({'ok': True})
+
+
+@admin_api_bp.route('/badge/draft/<draft_id>/commit', methods=['POST'])
+def api_draft_commit(draft_id):
+    """Commit draft to DB (write achievements + achievement_stats + achievement_badges)."""
+    from workflow.draft import load_draft, update_draft_status
+    from workflow.generator import commit_draft_to_db
+
+    draft = load_draft(draft_id)
+    if not draft:
+        return jsonify({'error': 'Draft not found'}), 404
+
+    if draft.status not in ('confirmed', 'draft_awaiting_confirm'):
+        return jsonify({'error': f'Draft status is {draft.status}, expected confirmed or draft_awaiting_confirm'}), 400
+
+    try:
+        badge_id = commit_draft_to_db(draft.meta, draft.image)
+        update_draft_status(draft, 'committed', by='user')
+        return jsonify({'ok': True, 'badge_id': badge_id})
+    except Exception as e:
+        logger.error(f"Draft commit failed: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_api_bp.route('/badge/draft/<draft_id>', methods=['DELETE'])
+def api_draft_discard(draft_id):
+    """Discard a draft."""
+    from workflow.draft import discard_draft
+    if not discard_draft(draft_id):
+        return jsonify({'error': 'Draft not found'}), 404
+    return jsonify({'ok': True})
+
+
+# ── Design page route ────────────────────────────────────────
+
+@admin_bp.route('/badge/design')
+def badge_design():
+    """Badge design workflow page."""
+    return render_template('admin/badge_design.html')

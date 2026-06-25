@@ -1,0 +1,286 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Badge 设计工作流 - Yoachi Admin{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <h1>🎨 Badge 设计工作流</h1>
+  <div class="actions">
+    <a href="/admin/" class="btn btn-secondary">← 勋章管理</a>
+    <button class="btn btn-primary" onclick="showNewDraft()">➕ 新建 Draft</button>
+  </div>
+</div>
+
+<!-- Draft 列表 -->
+<div class="card" style="margin-bottom:24px;">
+  <div style="padding:16px 20px; border-bottom:1px solid var(--border); display:flex; gap:12px;">
+    <button class="btn btn-sm btn-primary" onclick="loadDrafts()">刷新</button>
+    <select id="status-filter" onchange="loadDrafts()" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+      <option value="">全部状态</option>
+      <option value="draft_created">草稿</option>
+      <option value="draft_awaiting_confirm">待确认</option>
+      <option value="confirmed">已确认</option>
+      <option value="committed">已提交</option>
+      <option value="discarded">已丢弃</option>
+    </select>
+  </div>
+  <table class="badge-table">
+    <thead>
+      <tr>
+        <th>Draft ID</th>
+        <th>名称</th>
+        <th>分类</th>
+        <th>状态</th>
+        <th>创建时间</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="draft-tbody">
+      <tr><td colspan="6" class="empty-state"><p>加载中...</p></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 新建 Draft 弹窗 -->
+<div id="new-draft-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:1000; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:var(--neutral); border-radius:24px; border:2.5px solid #f0c040; width:100%; max-width:640px; max-height:90vh; overflow-y:auto; padding:32px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h2 style="font-size:20px; font-weight:900;">新建 Badge Draft</h2>
+      <button onclick="hideNewDraft()" style="background:none; border:none; font-size:24px; cursor:pointer;">✕</button>
+    </div>
+    <form id="draft-form">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#666;">Badge ID *</label>
+          <input name="id" required placeholder="如: reading_100_books"
+                 style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#666;">名称 *</label>
+          <input name="name" required placeholder="如: 百书斩"
+                 style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#666;">分类 *</label>
+          <select name="category" style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+            <option value="li">礼</option>
+            <option value="yue">乐</option>
+            <option value="she">射</option>
+            <option value="yu">御</option>
+            <option value="shu">书</option>
+            <option value="shu2">数</option>
+            <option value="ying">英</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#666;">标签 *</label>
+          <select name="type" style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+            <option value="突破">突破</option>
+            <option value="巅峰">巅峰</option>
+            <option value="执着">执着</option>
+            <option value="段位">段位</option>
+            <option value="晋级">晋级</option>
+            <option value="神秘">神秘</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <label style="font-size:12px;font-weight:700;color:#666;">AI 生图 Prompt (placeholder) *</label>
+        <textarea name="placeholder" rows="3" required
+                  style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;resize:vertical;"
+                  placeholder="如: a cute chibi girl reading a book with sparkles around her"></textarea>
+      </div>
+      <div style="margin-top:14px;">
+        <label style="font-size:12px;font-weight:700;color:#666;">条件文案 (cond_text)</label>
+        <input name="cond_text" placeholder="如: 累计阅读100本课外书"
+               style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+      </div>
+      <div style="margin-top:14px;">
+        <label style="font-size:12px;font-weight:700;color:#666;">典故故事 (description)</label>
+        <textarea name="description" rows="4"
+                  style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;resize:vertical;"
+                  placeholder="勋章的典故故事..."></textarea>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:14px;">
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#666;">稀有度</label>
+          <select name="rarity" style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+            <option value="N">N (无)</option>
+            <option value="common">普通</option>
+            <option value="R">稀有 (R)</option>
+            <option value="SR">超稀有 (SR)</option>
+            <option value="SSR">绝对稀有 (SSR)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#666;">解锁策略</label>
+          <select name="unlock_strategy" style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+            <option value="calc">calc (计算)</option>
+            <option value="manual">manual (手动)</option>
+            <option value="immediate">immediate (立即)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#666;">阈值</label>
+          <input name="threshold" type="number" style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;min-height:40px;">
+        </div>
+      </div>
+      <div style="margin-top:20px; display:flex; gap:10px;">
+        <button type="submit" class="btn btn-primary">创建 Draft</button>
+        <button type="button" class="btn btn-secondary" onclick="hideNewDraft()">取消</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const CATEGORY_LABELS = {
+  'li': '礼', 'yue': '乐', 'she': '射', 'yu': '御',
+  'shu': '书', 'shu2': '数', 'ying': '英'
+};
+const STATUS_LABELS = {
+  'draft_created': '📝 草稿',
+  'draft_awaiting_confirm': '⏳ 待确认',
+  'confirmed': '✅ 已确认',
+  'committed': '🎉 已提交',
+  'discarded': '🗑️ 已丢弃'
+};
+
+async function loadDrafts() {
+  const status = document.getElementById('status-filter').value;
+  const url = status ? `/api/admin/badge/drafts?status=${status}` : '/api/admin/badge/drafts';
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    const tbody = document.getElementById('draft-tbody');
+
+    if (!data.drafts.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><p>暂无 Draft</p></td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.drafts.map(d => {
+      const m = d.meta || {};
+      const time = new Date(d.created_at).toLocaleString('zh-CN');
+      const actions = [];
+      if (d.status === 'draft_created') {
+        actions.push(`<button class="btn btn-sm btn-primary" onclick="generateImage('${d.draft_id}')">生图</button>`);
+        actions.push(`<button class="btn btn-sm btn-danger" onclick="discardDraft('${d.draft_id}')">丢弃</button>`);
+      }
+      if (d.status === 'draft_awaiting_confirm') {
+        actions.push(`<button class="btn btn-sm btn-primary" onclick="confirmDraft('${d.draft_id}')">确认</button>`);
+        actions.push(`<button class="btn btn-sm btn-primary" onclick="commitDraft('${d.draft_id}')">提交</button>`);
+      }
+      if (d.status === 'confirmed') {
+        actions.push(`<button class="btn btn-sm btn-primary" onclick="commitDraft('${d.draft_id}')">提交到DB</button>`);
+      }
+      return `<tr>
+        <td><code style="font-size:11px;">${d.draft_id}</code></td>
+        <td>${esc(m.name || '')}</td>
+        <td>${CATEGORY_LABELS[m.category] || m.category || ''}</td>
+        <td>${STATUS_LABELS[d.status] || d.status}</td>
+        <td>${time}</td>
+        <td><div class="action-btns">${actions.join('')}</div></td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    console.error('Failed to load drafts:', e);
+  }
+}
+
+function showNewDraft() {
+  document.getElementById('new-draft-modal').style.display = 'flex';
+}
+function hideNewDraft() {
+  document.getElementById('new-draft-modal').style.display = 'none';
+}
+
+document.getElementById('draft-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = Object.fromEntries(fd.entries());
+  if (data.threshold) data.threshold = parseInt(data.threshold);
+  // Remove empty optional fields
+  for (const k of Object.keys(data)) {
+    if (data[k] === '') delete data[k];
+  }
+
+  try {
+    const res = await fetch('/api/admin/badge/draft', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    const result = await res.json();
+    if (res.ok) {
+      hideNewDraft();
+      e.target.reset();
+      loadDrafts();
+    } else {
+      alert(result.error || '创建失败');
+    }
+  } catch (err) {
+    alert('网络错误: ' + err.message);
+  }
+});
+
+async function generateImage(draftId) {
+  if (!confirm('开始生图？这会调用 AI 生成勋章图片。')) return;
+  try {
+    const res = await fetch(`/api/admin/badge/draft/${draftId}/generate`, {method: 'POST'});
+    const result = await res.json();
+    if (res.ok) {
+      alert('图片生成成功！');
+      loadDrafts();
+    } else {
+      alert('生图失败: ' + (result.error || '未知错误'));
+    }
+  } catch (err) {
+    alert('网络错误: ' + err.message);
+  }
+}
+
+async function confirmDraft(draftId) {
+  try {
+    const res = await fetch(`/api/admin/badge/draft/${draftId}/confirm`, {method: 'POST'});
+    if (res.ok) loadDrafts();
+    else alert('确认失败');
+  } catch (err) {
+    alert('网络错误: ' + err.message);
+  }
+}
+
+async function commitDraft(draftId) {
+  if (!confirm('确认提交到数据库？')) return;
+  try {
+    const res = await fetch(`/api/admin/badge/draft/${draftId}/commit`, {method: 'POST'});
+    const result = await res.json();
+    if (res.ok) {
+      alert(`Badge "${result.badge_id}" 已提交到数据库！`);
+      loadDrafts();
+    } else {
+      alert('提交失败: ' + (result.error || '未知错误'));
+    }
+  } catch (err) {
+    alert('网络错误: ' + err.message);
+  }
+}
+
+async function discardDraft(draftId) {
+  if (!confirm('确定丢弃这个 Draft？')) return;
+  try {
+    const res = await fetch(`/api/admin/badge/draft/${draftId}`, {method: 'DELETE'});
+    if (res.ok) loadDrafts();
+    else alert('丢弃失败');
+  } catch (err) {
+    alert('网络错误: ' + err.message);
+  }
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+loadDrafts();
+</script>
+{% endblock %}
