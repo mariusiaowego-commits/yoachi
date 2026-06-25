@@ -98,7 +98,7 @@ ALTER TABLE achievements ADD COLUMN achieved_at_override TEXT;
 CREATE TABLE IF NOT EXISTS badge_images (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     achievement_id TEXT NOT NULL,
-    rarity TEXT NOT NULL,                    -- common/rare/epic/legendary/locked
+    rarity TEXT NOT NULL DEFAULT 'N', -- N/common/R/SR/SSR/locked
     url TEXT NOT NULL,                       -- /static/badges/{id}_{rarity}_v{n}.png
     version INTEGER DEFAULT 1,
     is_current INTEGER DEFAULT 1,
