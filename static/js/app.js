@@ -57,6 +57,40 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// Alpine.js badgeWall component
+function badgeWall() {
+    return {
+        selectedCategory: 'all',
+        showModal: false,
+        selectedBadge: null,
+
+        init() {
+            // Alpine.js initialization complete
+        },
+
+        async showDetail(badgeId) {
+            try {
+                const response = await fetch(`/api/badges/${badgeId}`);
+                if (!response.ok) throw new Error('Badge not found');
+                this.selectedBadge = await response.json();
+                this.showModal = true;
+            } catch (error) {
+                console.error('Failed to load badge detail:', error);
+                showNotification('加载勋章详情失败', 'error');
+            }
+        },
+
+        closeModal() {
+            this.showModal = false;
+            this.selectedBadge = null;
+        },
+
+        formatDate(dateString) {
+            return formatDate(dateString);
+        }
+    };
+}
+
 // Export for use in Alpine.js
 window.YoachiUtils = {
     formatDate,
