@@ -5,12 +5,18 @@ body { margin: 0; padding: 0 0 80px; background: #FFF8F0; font-family: -apple-sy
 /* ── Top bar ─────────────────────────────────────────── */
 .top-bar {
   display: flex; align-items: center; justify-content: center;
-  padding: 14px 16px 12px;
+  padding: 14px 16px 12px; position: relative;
 }
 .page-title {
   font-size: 22px; font-weight: 900; color: #333;
   letter-spacing: 1px;
 }
+.admin-entry {
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  font-size: 20px; text-decoration: none; opacity: 0.4;
+  transition: opacity 0.2s;
+}
+.admin-entry:hover { opacity: 1; }
 
 /* ── Stats bar ───────────────────────────────────────── */
 .stats-bar {
