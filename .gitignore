@@ -52,3 +52,9 @@ build/
 
 # Logs directory
 logs/
+
+# Local-only files (不上 GH)
+AGENTS.md
+vibe-coding-log.md
+handoff-*.md
+STATUS.md
