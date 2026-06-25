@@ -53,20 +53,31 @@
 - **方式**: 直接复制 dizical 的 SQLite 文件
 - **同步内容**: achievements、achievement_stats、achievement_badges
 - **注意**: 只同步"乐"分类的数据，其他分类在 yoachi 独立管理
+- **post-sync hook**: 自动 re-map milestone/seasonal → yue + migration
+
+## 管理后台 (Admin)
+- **入口**: http://localhost:5001/admin/
+- **架构**: Flask Blueprint (admin_bp + admin_api_bp)
+- **双 DB 策略**: `yoachi.db` (sync 覆盖) + `yoachi_admin.db` (admin 专属，防 sync 覆盖)
+- **admin_db.py**: 独立 DB 管理 (badge_images, page_sections)
+- **功能**: Badge CRUD、手动解锁/锁定、分类筛选
+- **API 前缀**: `/api/admin/`
+- **稀有度**: N(无)/common(普通)/R(稀有)/SR(超稀有)/SSR(绝对稀有)
+- **解锁状态**: `achievement_stats.achieved` (Y/N) + `achievements.unlock_strategy` (calc/manual/immediate)
 
 ## 前端设计
 - **目标用户**: 8 岁儿童
 - **设计原则**: 字号大、交互简单、色彩明快
-- **UI 框架**: 原生 HTML/CSS + Alpine.js
+- **UI 框架**: 原生 HTML/CSS + Alpine.js + GSAP
 - **兼容性**: iPad Safari、手机浏览器
 - **设计系统**: dizicute 风格（从 dizical 继承）
 
 ## MVP 范围（v1.0）
-1. **数据同步**: yoachi 和 dizical 都能看到 dizical 项目里的 badge
-2. **生图工作流迁移**: 把成就生图工作流从 dizical 迁移到 yoachi
-3. **基础勋章墙**: 按分类展示勋章，modal 弹出详情
-4. **稀有度系统**: 后续版本单独开发
-5. **获取旅程动画**: 后续版本再做
+1. **数据同步**: yoachi 和 dizical 都能看到 dizical 项目里的 badge ✅
+2. **勋章墙**: dizicute 风格 + GSAP modal + 分类 tab ✅
+3. **管理后台**: Badge CRUD + 手动解锁 + 稀有度系统 ✅
+4. **生图工作流迁移**: Phase 2 — 从 dizical 复制 draft/generator
+5. **前端页面编排**: Phase 3 — 模块化积木式页面配置
 
 ## 业务约束
 - **PC 优先**: iPad Safari (landscape) + Mac Safari/Chrome
