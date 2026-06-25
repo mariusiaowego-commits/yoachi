@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from apscheduler.schedulers.background import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 # Configure logging
@@ -33,7 +33,8 @@ class SyncManager:
         self.yoachi_path = Path(yoachi_path).expanduser()
         self.interval_seconds = interval_seconds
         self.last_sync = None
-        self._scheduler = None
+        self.running = False
+        self._post_sync_hook = None
 
     def validate_source(self):
         """Validate source database exists, is accessible, and passes integrity check"""
@@ -125,9 +126,17 @@ class SyncManager:
             # Atomic rename
             temp_path.rename(self.yoachi_path)
             logger.info("Atomic rename completed")
-            
+
             self.last_sync = datetime.now()
             logger.info(f"Sync completed successfully at {self.last_sync}")
+
+            # Run post-sync hook (e.g. ensure yoachi-specific tables)
+            if self._post_sync_hook is not None:
+                try:
+                    self._post_sync_hook()
+                except Exception as e:
+                    logger.error(f"Post-sync hook failed: {e}")
+
             return True
             
         except Exception as e:
@@ -137,8 +146,9 @@ class SyncManager:
             return False
 
     def start_background(self):
-        """Start background sync using APScheduler (BlockingScheduler)"""
-        self._scheduler = BlockingScheduler()
+        """Start background sync using APScheduler (BackgroundScheduler - non-blocking)"""
+        from apscheduler.schedulers.background import BackgroundScheduler
+        self._scheduler = BackgroundScheduler()
 
         self._scheduler.add_job(
             self.sync_once,
@@ -152,7 +162,7 @@ class SyncManager:
         self.sync_once()
 
         self._scheduler.start()
-        logger.info(f"Background sync started (APScheduler, interval: {self.interval_seconds}s)")
+        logger.info(f"Background sync started (BackgroundScheduler, interval: {self.interval_seconds}s)")
         return self._scheduler
 
     def stop(self):
