@@ -66,6 +66,10 @@ def _ensure_yoachi_schema():
         conn.commit()
     finally:
         conn.close()
+    # Admin DB: badge_images + page_sections (survives sync)
+    from admin_db import init_admin_db, migrate_yoachi_db
+    init_admin_db()
+    migrate_yoachi_db()
 
 
 # Import and start sync AFTER app is created (avoids circular import / at-import blocking)
