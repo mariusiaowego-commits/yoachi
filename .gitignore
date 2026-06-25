@@ -45,3 +45,10 @@ build/
 *.pem
 *.key
 *.secret
+
+# SQLite temp files
+*.tmp-wal
+*.tmp-shm
+
+# Logs directory
+logs/
