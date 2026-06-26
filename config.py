@@ -9,7 +9,7 @@ class Config:
     
     # Flask settings
     HOST = '0.0.0.0'
-    PORT = 5001
+    PORT = 8201
     DEBUG = True
     
     # Sync settings

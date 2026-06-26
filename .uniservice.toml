@@ -1,0 +1,17 @@
+schema_version = 1
+
+[project]
+name = "yoachi"
+description = "女儿终身成就体系"
+
+[service.app]
+command = ".venv/bin/python3 app.py"
+port = 8201
+bind = "0.0.0.0"  # Tailscale 访问需要
+workdir = "/Users/mt16/dev/yoachi"
+
+[service.app.healthcheck]
+type = "http"
+url = "http://127.0.0.1:8201/"
+interval = 10
+timeout = 30

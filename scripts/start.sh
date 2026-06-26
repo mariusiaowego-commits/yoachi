@@ -38,7 +38,7 @@ echo $SYNC_PID > "$DATA_DIR/sync.pid"
 echo -e "${GREEN}Sync manager started (PID: $SYNC_PID)${NC}"
 
 # Start Flask app in background
-echo -e "${GREEN}Starting Flask app on port 5001...${NC}"
+echo -e "${GREEN}Starting Flask app on port 8201...${NC}"
 cd "$PROJECT_DIR"
 nohup python3 app.py > "$LOGS_DIR/app.log" 2>&1 &
 APP_PID=$!
