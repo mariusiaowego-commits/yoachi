@@ -179,6 +179,89 @@ def generate_image(placeholder: str, badge_id: str, version: int = 1) -> dict[st
     }
 
 
+def _validate_uploaded_image(path: Path) -> tuple[bool, float]:
+    """校验上传图片: 必须是 PNG/RGBA + 透明像素 > 28%.
+
+    用户上传的图不强制去白底 (有的人本来就传好 PNG),
+    但必须满足最低透明度阈值, 否则不算合格 badge.
+    """
+    try:
+        img = Image.open(path)
+    except Exception as e:
+        logger.warning(f"上传图片无法打开: {e}")
+        return False, 0.0
+
+    if img.mode != "RGBA":
+        img = img.convert("RGBA")
+
+    alpha = img.split()[-1]
+    w, h = img.size
+    trans = sum(1 for px in alpha.getdata() if px < 128)
+    trans_pct = trans / (w * h) * 100
+
+    if trans_pct < 28:
+        logger.warning(f"上传图片透明度 {trans_pct:.0f}% < 28%, 不合格")
+        return False, trans_pct
+
+    return True, trans_pct
+
+
+def save_uploaded_image(
+    source: Path,
+    badge_id: str,
+    version: int = 1,
+    auto_remove_bg: bool = True,
+) -> dict[str, Any]:
+    """把上传图片落盘到 static/badges/, 可选去白底.
+
+    Returns: image_info dict (与 generate_image 同 schema)
+    Raises: ValueError 当图片不合格.
+    """
+    import uuid as _uuid
+
+    _BADGES_DIR.mkdir(parents=True, exist_ok=True)
+
+    # 用 UUID 后缀避免 name 冲突, 但保留 badge_id 可读
+    suffix = source.suffix.lower() or ".png"
+    dest_name = f"{badge_id}_v{version}_{_uuid.uuid4().hex[:4]}{suffix}"
+    dest = _BADGES_DIR / dest_name
+
+    shutil.copy2(source, dest)
+
+    # 如果不是 RGBA 或透明不够, 尝试去白底
+    img = Image.open(dest)
+    needs_dedup = False
+    if img.mode != "RGBA":
+        img = img.convert("RGBA")
+        needs_dedup = True
+
+    alpha = img.split()[-1]
+    w, h = img.size
+    trans = sum(1 for px in alpha.getdata() if px < 128)
+    trans_pct = trans / (w * h) * 100
+
+    if trans_pct < 28 and auto_remove_bg:
+        logger.info(f"上传图透明度 {trans_pct:.0f}% < 28%, 尝试去白底")
+        needs_dedup = True
+
+    if needs_dedup:
+        img.save(dest, optimize=True)
+        ok, pct = remove_background(dest)
+        if not ok:
+            raise ValueError(f"上传图片不合格且去白底失败, 透明度 {pct:.0f}%")
+        trans_pct = pct
+
+    return {
+        "path": str(dest),
+        "url": f"/static/badges/{dest_name}",
+        "model": "user_upload",
+        "prompt_used": "(uploaded)",
+        "alpha_verified": trans_pct >= 28,
+        "transparency_pct": round(trans_pct, 1),
+        "version": version,
+    }
+
+
 # ─── Commit to DB ────────────────────────────────────────────
 
 def commit_draft_to_db(draft_meta: dict[str, Any], image_info: dict[str, Any] | None) -> str:

@@ -1,8 +1,11 @@
 """Yoachi Admin Blueprint — badge management routes."""
 import json
 import logging
+import os
 import sqlite3
+import uuid as _uuid
 from datetime import datetime
+from pathlib import Path
 from flask import Blueprint, render_template, request, jsonify, g, current_app
 
 logger = logging.getLogger(__name__)
@@ -292,10 +295,18 @@ def api_draft_create():
     if not data:
         return jsonify({'error': 'JSON body required'}), 400
 
-    required = ['id', 'name', 'type', 'category']
+    required = ['id', 'name', 'type', 'category', 'image_source']
     missing = [f for f in required if not data.get(f)]
     if missing:
         return jsonify({'error': f'Missing fields: {missing}'}), 400
+
+    # Validate image_source
+    if data['image_source'] not in ('generate', 'upload'):
+        return jsonify({'error': 'image_source must be "generate" or "upload"'}), 400
+
+    # placeholder required only when generating; upload can skip
+    if data['image_source'] == 'generate' and not data.get('placeholder'):
+        return jsonify({'error': 'Missing fields: placeholder (required for image_source=generate)'}), 400
 
     from workflow.draft import create_draft
     try:
@@ -328,6 +339,9 @@ def api_draft_generate(draft_id):
     if draft.status != 'draft_created':
         return jsonify({'error': f'Draft status is {draft.status}, expected draft_created'}), 400
 
+    if draft.meta.get('image_source') == 'upload':
+        return jsonify({'error': 'Draft uses uploaded image, use /upload endpoint instead'}), 400
+
     placeholder = draft.meta.get('placeholder', '')
     if not placeholder:
         return jsonify({'error': 'No placeholder (AI prompt) in draft meta'}), 400
@@ -339,6 +353,85 @@ def api_draft_generate(draft_id):
     except Exception as e:
         logger.error(f"Image generation failed: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+# Image source toggle ('generate' or 'upload') now lives in draft.meta.image_source.
+# image_source='upload' skips placeholder validation in api_draft_create.
+_ALLOWED_IMAGE_EXTS = {'.png'}
+_MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+@admin_api_bp.route('/badge/draft/<draft_id>/upload', methods=['POST'])
+def api_draft_upload(draft_id):
+    """Upload user-provided image for a draft (skip hermes).
+
+    Form fields:
+      - file: PNG file (multipart)
+      - auto_remove_bg: 'true'|'false' (default true)
+
+    Image goes through transparency check (>=28%); failed check
+    with auto_remove_bg=true triggers PIL+rembg fallback like generate_image.
+    """
+    from workflow.draft import load_draft, update_draft_image
+    from workflow.generator import save_uploaded_image
+
+    draft = load_draft(draft_id)
+    if not draft:
+        return jsonify({'error': 'Draft not found'}), 404
+
+    if draft.status != 'draft_created':
+        return jsonify({'error': f'Draft status is {draft.status}, expected draft_created'}), 400
+
+    if draft.meta.get('image_source') != 'upload':
+        return jsonify({'error': 'image_source must be "upload" for this endpoint'}), 400
+
+    if 'file' not in request.files:
+        return jsonify({'error': 'Missing file field'}), 400
+
+    f = request.files['file']
+    if not f or not f.filename:
+        return jsonify({'error': 'Empty filename'}), 400
+
+    # Secure extension check
+    ext = Path(f.filename).suffix.lower()
+    if ext not in _ALLOWED_IMAGE_EXTS:
+        return jsonify({'error': f'Only PNG allowed, got {ext}'}), 400
+
+    # Read + size guard
+    raw = f.read()
+    if len(raw) > _MAX_UPLOAD_BYTES:
+        return jsonify({'error': f'File too large (>{_MAX_UPLOAD_BYTES // 1024 // 1024} MB)'}), 413
+
+    # Magic-byte check (PNG = 89 50 4E 47)
+    if len(raw) < 8 or raw[:8] != b'\x89PNG\r\n\x1a\n':
+        return jsonify({'error': 'Not a real PNG (magic bytes missing)'}), 400
+
+    # Save to temp, then run through pipeline
+    import tempfile
+    fd, tmp_path = tempfile.mkstemp(suffix='.png', prefix='upload_')
+    try:
+        os.write(fd, raw)
+        os.close(fd)
+        auto_bg = request.form.get('auto_remove_bg', 'true').lower() != 'false'
+
+        try:
+            image_info = save_uploaded_image(
+                source=Path(tmp_path),
+                badge_id=draft.meta['id'],
+                version=draft.version,
+                auto_remove_bg=auto_bg,
+            )
+        except ValueError as ve:
+            return jsonify({'error': str(ve)}), 400
+
+        update_draft_image(draft, image_info)
+        return jsonify({'ok': True, 'image': image_info})
+    finally:
+        # best-effort cleanup
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
 
 @admin_api_bp.route('/badge/draft/<draft_id>/confirm', methods=['POST'])

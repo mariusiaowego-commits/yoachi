@@ -49,6 +49,25 @@
       <button onclick="hideNewDraft()" style="background:none; border:none; font-size:24px; cursor:pointer;">✕</button>
     </div>
     <form id="draft-form">
+      <!-- Image source toggle -->
+      <div style="margin-bottom:18px; padding:14px; background:#FFF8E1; border:2px solid #FFD54F; border-radius:14px;">
+        <label style="font-size:13px; font-weight:800; color:#F57F17; display:block; margin-bottom:8px;">
+          图片来源 <span style="color:#D32F2F;">*</span>
+        </label>
+        <div style="display:flex; gap:12px;">
+          <label style="flex:1; padding:12px; border:2px solid #E5E7EB; border-radius:10px; cursor:pointer; background:white; text-align:center;">
+            <input type="radio" name="image_source" value="generate" checked onchange="toggleImageSource()" style="margin-right:6px;">
+            <strong>🎨 AI 生图</strong>
+            <div style="font-size:11px; color:#666; margin-top:4px;">调 hermes 生成</div>
+          </label>
+          <label style="flex:1; padding:12px; border:2px solid #E5E7EB; border-radius:10px; cursor:pointer; background:white; text-align:center;">
+            <input type="radio" name="image_source" value="upload" onchange="toggleImageSource()" style="margin-right:6px;">
+            <strong>📤 上传现有图</strong>
+            <div style="font-size:11px; color:#666; margin-top:4px;">拖拽 / 选本地 PNG</div>
+          </label>
+        </div>
+      </div>
+
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
         <div>
           <label style="font-size:12px;font-weight:700;color:#666;">Badge ID *</label>
@@ -84,11 +103,37 @@
           </select>
         </div>
       </div>
-      <div style="margin-top:14px;">
-        <label style="font-size:12px;font-weight:700;color:#666;">AI 生图 Prompt (placeholder) *</label>
-        <textarea name="placeholder" rows="3" required
+      <div id="placeholder-group" style="margin-top:14px;">
+        <label style="font-size:12px;font-weight:700;color:#666;">
+          AI 生图 Prompt (placeholder) <span id="placeholder-required">*</span>
+        </label>
+        <textarea name="placeholder" rows="3"
                   style="width:100%;padding:10px;border:1px solid #E5E7EB;border-radius:8px;font-size:14px;resize:vertical;"
                   placeholder="如: a cute chibi girl reading a book with sparkles around her"></textarea>
+        <div style="font-size:11px; color:#888; margin-top:4px;">此 prompt 将作为 AI 生图的场景描述</div>
+      </div>
+      <!-- Upload dropzone (hidden by default, shown when image_source=upload) -->
+      <div id="upload-group" style="display:none; margin-top:14px;">
+        <label style="font-size:12px;font-weight:700;color:#666; display:block; margin-bottom:6px;">
+          上传图片 (仅 PNG, ≤10MB)
+        </label>
+        <div id="dropzone" style="border:2.5px dashed #ccc; border-radius:14px; padding:32px; text-align:center; background:#FAFAFA; cursor:pointer; transition:all 0.2s;"
+             onclick="document.getElementById('upload-input').click()">
+          <div style="font-size:36px; margin-bottom:8px;">📤</div>
+          <div style="font-size:14px; font-weight:700; color:#444;">拖拽 PNG 到这里，或点击选择文件</div>
+          <div style="font-size:11px; color:#888; margin-top:6px;">建议使用已去白底的透明 PNG (透明度 ≥28%)</div>
+        </div>
+        <input type="file" id="upload-input" accept=".png,image/png" style="display:none;">
+        <div id="upload-preview" style="display:none; margin-top:12px; padding:12px; background:white; border:1px solid #E5E7EB; border-radius:10px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <img id="upload-thumb" style="width:64px; height:64px; object-fit:contain; background:#F5F5F5; border-radius:8px;">
+            <div style="flex:1; min-width:0;">
+              <div id="upload-filename" style="font-size:13px; font-weight:700; color:#333; word-break:break-all;"></div>
+              <div id="upload-size" style="font-size:11px; color:#666;"></div>
+            </div>
+            <button type="button" onclick="clearUpload()" style="background:none; border:none; color:#D32F2F; cursor:pointer; font-size:18px;">✕</button>
+          </div>
+        </div>
       </div>
       <div style="margin-top:14px;">
         <label style="font-size:12px;font-weight:700;color:#666;">条件文案 (cond_text)</label>
@@ -126,7 +171,8 @@
         </div>
       </div>
       <div style="margin-top:20px; display:flex; gap:10px;">
-        <button type="submit" class="btn btn-primary">创建 Draft</button>
+        <button id="draft-submit-btn" type="submit" class="btn btn-primary">创建 Draft</button>
+        <button id="draft-upload-btn" type="button" class="btn btn-primary" style="display:none;" onclick="uploadImage()">📤 上传到 Draft</button>
         <button type="button" class="btn btn-secondary" onclick="hideNewDraft()">取消</button>
       </div>
     </form>
@@ -164,7 +210,12 @@ async function loadDrafts() {
       const time = new Date(d.created_at).toLocaleString('zh-CN');
       const actions = [];
       if (d.status === 'draft_created') {
-        actions.push(`<button class="btn btn-sm btn-primary" onclick="generateImage('${d.draft_id}')">生图</button>`);
+        // 图片来源决定后续动作
+        if (m.image_source === 'upload') {
+          actions.push(`<button class="btn btn-sm btn-primary" onclick="openUploadDialog('${d.draft_id}')">📤 上传图片</button>`);
+        } else {
+          actions.push(`<button class="btn btn-sm btn-primary" onclick="generateImage('${d.draft_id}')">🎨 生图</button>`);
+        }
         actions.push(`<button class="btn btn-sm btn-danger" onclick="discardDraft('${d.draft_id}')">丢弃</button>`);
       }
       if (d.status === 'draft_awaiting_confirm') {
@@ -204,6 +255,8 @@ document.getElementById('draft-form').addEventListener('submit', async (e) => {
   for (const k of Object.keys(data)) {
     if (data[k] === '') delete data[k];
   }
+  // Drop internal flags not part of API contract
+  delete data._upload_target_draft;
 
   try {
     const res = await fetch('/api/admin/badge/draft', {
@@ -279,6 +332,156 @@ async function discardDraft(draftId) {
 
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Image source toggle + dropzone ──────────────────────────
+let _currentUploadDraftId = null;
+let _currentUploadFile = null;
+
+function toggleImageSource() {
+  const src = document.querySelector('input[name="image_source"]:checked').value;
+  const phGroup = document.getElementById('placeholder-group');
+  const upGroup = document.getElementById('upload-group');
+  const phRequired = document.getElementById('placeholder-required');
+  const phTextarea = document.querySelector('textarea[name="placeholder"]');
+  const submitBtn = document.getElementById('draft-submit-btn');
+  const uploadBtn = document.getElementById('draft-upload-btn');
+  if (src === 'upload') {
+    phGroup.style.display = 'none';
+    upGroup.style.display = 'block';
+    if (phTextarea) phTextarea.removeAttribute('required');
+    if (phRequired) phRequired.style.display = 'none';
+    if (submitBtn) submitBtn.style.display = 'none';
+    if (uploadBtn) uploadBtn.style.display = 'inline-flex';
+  } else {
+    phGroup.style.display = 'block';
+    upGroup.style.display = 'none';
+    if (phTextarea) phTextarea.setAttribute('required', '');
+    if (phRequired) phRequired.style.display = 'inline';
+    if (submitBtn) submitBtn.style.display = 'inline-flex';
+    if (uploadBtn) uploadBtn.style.display = 'none';
+    clearUpload();
+    // Drop upload-only state when switching back to generate
+    const form = document.getElementById('draft-form');
+    const tgt = form && form.querySelector('input[name="_upload_target_draft"]');
+    if (tgt) tgt.value = '';
+  }
+}
+
+// Wire dropzone (after DOM ready)
+document.addEventListener('DOMContentLoaded', () => {
+  const dz = document.getElementById('dropzone');
+  const inp = document.getElementById('upload-input');
+  if (!dz || !inp) return;
+
+  ['dragenter', 'dragover'].forEach(ev => {
+    dz.addEventListener(ev, (e) => {
+      e.preventDefault();
+      dz.style.background = '#FFF3E0';
+      dz.style.borderColor = '#F57F17';
+    });
+  });
+  ['dragleave', 'drop'].forEach(ev => {
+    dz.addEventListener(ev, (e) => {
+      e.preventDefault();
+      dz.style.background = '#FAFAFA';
+      dz.style.borderColor = '#ccc';
+    });
+  });
+  dz.addEventListener('drop', (e) => {
+    const f = e.dataTransfer.files[0];
+    if (f) handleUploadFile(f);
+  });
+  inp.addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f) handleUploadFile(f);
+  });
+});
+
+function handleUploadFile(file) {
+  if (!file.name.toLowerCase().endsWith('.png')) {
+    alert('只支持 PNG 格式');
+    return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    alert('文件超过 10MB');
+    return;
+  }
+  _currentUploadFile = file;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('upload-thumb').src = e.target.result;
+    document.getElementById('upload-filename').textContent = file.name;
+    document.getElementById('upload-size').textContent =
+      (file.size / 1024).toFixed(1) + ' KB';
+    document.getElementById('upload-preview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearUpload() {
+  _currentUploadFile = null;
+  document.getElementById('upload-preview').style.display = 'none';
+  document.getElementById('upload-input').value = '';
+}
+
+function openUploadDialog(draftId) {
+  _currentUploadDraftId = draftId;
+  // Reuse new-draft modal frame, but pre-fill id/name is not needed
+  // (we reuse modal just for the upload UI).
+  // Simpler: piggyback on the same form. We don't actually need to fill anything;
+  // user should already have created the draft. Just need to call upload endpoint.
+  document.getElementById('new-draft-modal').style.display = 'flex';
+  // Switch to upload mode and stash draftId in a hidden flag
+  const form = document.getElementById('draft-form');
+  // Set hidden field to remember which draft to upload to
+  let hidden = form.querySelector('input[name="_upload_target_draft"]');
+  if (!hidden) {
+    hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.name = '_upload_target_draft';
+    form.appendChild(hidden);
+  }
+  hidden.value = draftId;
+  // Switch to upload mode
+  const radio = form.querySelector('input[name="image_source"][value="upload"]');
+  if (radio) radio.checked = true;
+  toggleImageSource();
+}
+
+async function uploadImage() {
+  if (!_currentUploadFile) {
+    alert('请先选择图片');
+    return;
+  }
+  const form = document.getElementById('draft-form');
+  const target = form.querySelector('input[name="_upload_target_draft"]');
+  const draftId = target ? target.value : null;
+  if (!draftId) {
+    alert('未选中 draft，请重新打开上传对话框');
+    return;
+  }
+  const fd = new FormData();
+  fd.append('file', _currentUploadFile);
+  fd.append('auto_remove_bg', 'true');
+  try {
+    const res = await fetch(`/api/admin/badge/draft/${draftId}/upload`, {
+      method: 'POST',
+      body: fd,
+    });
+    const result = await res.json();
+    if (res.ok) {
+      alert('图片上传成功！透明度: ' + result.image.transparency_pct + '%');
+      hideNewDraft();
+      clearUpload();
+      if (target) target.value = '';
+      loadDrafts();
+    } else {
+      alert('上传失败: ' + (result.error || '未知错误'));
+    }
+  } catch (err) {
+    alert('网络错误: ' + err.message);
+  }
 }
 
 loadDrafts();
