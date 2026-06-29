@@ -56,7 +56,7 @@ def _dedupe_to_rgba(src: Path) -> tuple[bool, float]:
     img.save(src, optimize=True)
 
     alpha = img.split()[-1]
-    trans_count = sum(1 for px in alpha.get_flattened_data() if px < 128)
+    trans_count = sum(1 for px in alpha.getdata() if px < 128)
     trans_pct = trans_count / (w * h) * 100
     return True, trans_pct
 
@@ -76,7 +76,7 @@ def _rembg_fallback(src: Path) -> tuple[bool, float]:
         if img.mode == "RGBA":
             alpha = img.split()[-1]
             w, h = img.size
-            trans = sum(1 for px in alpha.get_flattened_data() if px < 128)
+            trans = sum(1 for px in alpha.getdata() if px < 128)
             trans_pct = trans / (w * h) * 100
             return True, trans_pct
         return True, 0.0
